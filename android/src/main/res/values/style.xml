@@ -1,0 +1,12 @@
+<resources>
+    <style name="CustomBottomSheetDialog" parent="Theme.Design.Light.BottomSheetDialog">
+        <item name="android:windowEnterAnimation">@anim/slide_in_bottom</item>
+        <item name="android:windowExitAnimation">@anim/slide_out_bottom</item>
+    </style>
+
+    <style name="CustomBottomSheet" parent="Widget.Design.BottomSheet.Modal">
+        <item name="android:background">@android:color/black</item>
+        <item name="behavior_peekHeight">800dp</item>
+        <item name="behavior_hideable">false</item>
+    </style>
+</resources>

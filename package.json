@@ -1,0 +1,14 @@
+{
+  "name": "checkout-module",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "expo": "^52.0.27"
+  },
+  "author": "",
+  "license": "ISC"
+}

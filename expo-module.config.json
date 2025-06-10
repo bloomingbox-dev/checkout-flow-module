@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["CheckoutModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.checkoutmodule.CheckoutModule"]
+  }
+}
