@@ -70,10 +70,12 @@ class CheckoutModule : Module() {
             Log.d("setCredentials", "environment: $environment")
         }
 
-        AsyncFunction("initializeCheckout") {paymentSession: Map<String, Any?> ->
+        AsyncFunction("initializeCheckout") { paymentSession: Map<String, Any?> ->
             val paymentSessionId = paymentSession["id"] as? String ?: return@AsyncFunction
-            val paymentSessionToken = paymentSession["payment_session_token"] as? String ?: return@AsyncFunction
-            val paymentSessionSecret = paymentSession["payment_session_secret"] as? String ?: return@AsyncFunction
+            val paymentSessionToken =
+                paymentSession["payment_session_token"] as? String ?: return@AsyncFunction
+            val paymentSessionSecret =
+                paymentSession["payment_session_secret"] as? String ?: return@AsyncFunction
 
             this@CheckoutModule.paymentSessionID = paymentSessionId
             this@CheckoutModule.paymentSessionToken = paymentSessionToken
@@ -81,7 +83,10 @@ class CheckoutModule : Module() {
         }
 
         AsyncFunction("renderFlow") {
-            Log.d("FlowModule", "startPaymentSession invoked with ID: $this@CheckoutModule.paymentSessionID")
+            Log.d(
+                "FlowModule",
+                "startPaymentSession invoked with ID: $this@CheckoutModule.paymentSessionID"
+            )
 
             val activity = appContext.currentActivity
             if (activity == null) {
@@ -106,6 +111,7 @@ class CheckoutModule : Module() {
                         "flow component",
                         "Error: ${checkoutError.message}, Code: ${checkoutError.code}"
                     )
+                    this@CheckoutModule.sendEvent("onFail");
                 }
             )
 
@@ -141,14 +147,19 @@ class CheckoutModule : Module() {
                                     FrameLayout.LayoutParams.MATCH_PARENT
                                 )
                                 setBackgroundResource(R.drawable.rounded_top_background)
-                                fitsSystemWindows = false
+                                fitsSystemWindows = true
                             }
 
                             dialog.setContentView(containerView)
-                            dialog.window?.setWindowAnimations(R.style.CustomBottomSheetDialog)
-                            dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
-                            val bottomSheet = dialog.findViewById<FrameLayout>(com.google.android.material.R.id.design_bottom_sheet)
+                            dialog.window?.apply {
+                                setWindowAnimations(R.style.CustomBottomSheetDialog)
+                                setBackgroundDrawableResource(android.R.color.transparent)
+                                setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+                            }
+
+                            val bottomSheet =
+                                dialog.findViewById<FrameLayout>(com.google.android.material.R.id.design_bottom_sheet)
                             bottomSheet?.apply {
                                 setBackgroundResource(R.drawable.rounded_top_background)
                                 clipToOutline = true
@@ -186,7 +197,8 @@ class CheckoutModule : Module() {
                                 }
 
                                 ViewCompat.setOnApplyWindowInsetsListener(wrappedView) { v, insets ->
-                                    val bottomInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+                                    val bottomInset =
+                                        insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
                                     v.updatePadding(bottom = bottomInset)
                                     insets
                                 }
