@@ -22,11 +22,14 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 
 import com.checkout.components.core.CheckoutComponentsFactory
 import com.checkout.components.interfaces.Environment
+import com.checkout.components.interfaces.api.CheckoutComponents
 import com.checkout.components.interfaces.component.CheckoutComponentConfiguration
 import com.checkout.components.interfaces.component.ComponentCallback
 import com.checkout.components.interfaces.error.CheckoutError
 import com.checkout.components.interfaces.model.ComponentName
+import com.checkout.components.interfaces.model.PaymentMethodName
 import com.checkout.components.interfaces.model.PaymentSessionResponse
+import com.checkout.components.wallet.wrapper.GooglePayFlowCoordinator
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 
 import expo.modules.kotlin.modules.Module
@@ -47,6 +50,13 @@ class CheckoutModule : Module() {
         dialog?.dismiss()
         bottomSheetDialog = null
     }
+
+    lateinit private var checkoutComponents: CheckoutComponents
+
+    private fun handleActivityResult(resultCode: Int, data: String) {
+        this.checkoutComponents?.handleActivityResult(resultCode, data)
+    }
+
 
     override fun definition() = ModuleDefinition {
         Name("CheckoutModule")
@@ -118,6 +128,15 @@ class CheckoutModule : Module() {
             val context = activity as Context
             Log.d("FlowModule", "Context: $context")
             activity.runOnUiThread {
+                val coordinator = GooglePayFlowCoordinator(
+                    context = activity,
+                    handleActivityResult = { resultCode, data ->
+                        this@CheckoutModule.handleActivityResult(resultCode, data)
+                    }
+                )
+
+                val flowCoordinators = mapOf(PaymentMethodName.GooglePay to coordinator)
+
                 val configuration = CheckoutComponentConfiguration(
                     context = context,
                     paymentSession = PaymentSessionResponse(
@@ -127,12 +146,13 @@ class CheckoutModule : Module() {
                     ),
                     componentCallback = customComponentCallback,
                     publicKey = this@CheckoutModule.publicKey,
-                    environment = this@CheckoutModule.environment
+                    environment = this@CheckoutModule.environment,
+                    flowCoordinators = flowCoordinators,
                 )
 
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        val checkoutComponents =
+                        this@CheckoutModule.checkoutComponents =
                             CheckoutComponentsFactory(config = configuration).create()
 
                         val flowComponent = checkoutComponents.create(ComponentName.Flow)
