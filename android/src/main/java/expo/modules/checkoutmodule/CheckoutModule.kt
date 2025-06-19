@@ -92,11 +92,13 @@ class CheckoutModule : Module() {
             this@CheckoutModule.paymentSessionSecret = paymentSessionSecret
         }
 
-        AsyncFunction("renderFlow") {
+        AsyncFunction("renderFlow") { params: Map<String, Any?> ->
             Log.d(
                 "FlowModule",
                 "startPaymentSession invoked with ID: $this@CheckoutModule.paymentSessionID"
             )
+
+            val enableGooglePay = params["enableGooglePay"] as? Boolean ?: return@AsyncFunction null
 
             val activity = appContext.currentActivity
             if (activity == null) {
@@ -135,7 +137,11 @@ class CheckoutModule : Module() {
                     }
                 )
 
-                val flowCoordinators = mapOf(PaymentMethodName.GooglePay to coordinator)
+                val flowCoordinators = if (enableGooglePay) {
+                    mapOf(PaymentMethodName.GooglePay to coordinator)
+                } else {
+                    emptyMap()
+                }
 
                 val configuration = CheckoutComponentConfiguration(
                     context = context,

@@ -18,3 +18,7 @@ export type InitializeCheckoutPayload = {
     };
   };
 };
+
+export type RenderFlowPayload = {
+  enableGooglePay?: boolean;
+}
