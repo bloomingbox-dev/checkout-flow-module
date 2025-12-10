@@ -15,7 +15,7 @@ Pod::Spec.new do |s|
   s.dependency 'ExpoModulesCore'
   spm_dependency(s,
     url: 'https://github.com/checkout/checkout-ios-components',
-    requirement: {kind: 'exactVersion', version: '1.0.0-beta-3'},
+    requirement: {kind: 'exactVersion', version: '1.2.6'},
     products: ['CheckoutComponents']
   )
 
