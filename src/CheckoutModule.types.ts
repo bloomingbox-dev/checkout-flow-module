@@ -12,6 +12,7 @@ export type InitializeCheckoutPayload = {
   id: string;
   payment_session_token: string;
   payment_session_secret: string;
+  email?: string;
   _links: {
     self: {
       href: string;

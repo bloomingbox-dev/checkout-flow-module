@@ -6,6 +6,7 @@ public class CheckoutModule: Module {
     private var checkoutComponents: CheckoutComponents?
     private var publicKey = ""
     private var environment = CheckoutComponents.Environment.sandbox
+    private var customerEmail = ""
 
     private var hostingController: UIHostingController<AnyView>?
     private var rootViewController: UIViewController?
@@ -55,13 +56,14 @@ public class CheckoutModule: Module {
       throw NSError(domain: "InvalidSession", code: 400, userInfo: nil)
     }
 
+    self.customerEmail = paymentSession["email"] as? String ?? ""
+
     let session = PaymentSession(id: paymentSessionID, paymentSessionSecret: paymentSessionSecret)
 
     let config = try await CheckoutComponents.Configuration(
       paymentSession: session,
       publicKey: publicKey,
       environment: environment,
-      rememberMe: .enabled,
       callbacks: CheckoutComponents.Callbacks(
         onSuccess: { paymentMethod, paymentID in
             print("Payment successful: \(paymentID)");
@@ -93,7 +95,12 @@ public class CheckoutModule: Module {
       throw NSError(domain: "NoRootView", code: 500, userInfo: nil)
     }
 
-    let flowComponent = try checkoutComponents.create(.flow())
+    let rememberMeConfiguration: CheckoutComponents.RememberMeConfiguration? = customerEmail.isEmpty ? nil : {
+      let data = CheckoutComponents.RememberMeConfiguration.Data(email: customerEmail)
+      return CheckoutComponents.RememberMeConfiguration(data: data, showPayButton: true)
+    }()
+
+    let flowComponent = try checkoutComponents.create(.flow(rememberMeConfiguration: rememberMeConfiguration))
     let flowView = flowComponent.render()
 
     let hostingController = UIHostingController(rootView: flowView)
