@@ -61,6 +61,7 @@ public class CheckoutModule: Module {
       paymentSession: session,
       publicKey: publicKey,
       environment: environment,
+      rememberMe: .enabled,
       callbacks: CheckoutComponents.Callbacks(
         onSuccess: { paymentMethod, paymentID in
             print("Payment successful: \(paymentID)");
