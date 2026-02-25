@@ -29,6 +29,7 @@ import com.checkout.components.interfaces.error.CheckoutError
 import com.checkout.components.interfaces.model.ComponentName
 import com.checkout.components.interfaces.model.PaymentMethodName
 import com.checkout.components.interfaces.model.PaymentSessionResponse
+import com.checkout.components.interfaces.model.RememberMeConfiguration
 import com.checkout.components.wallet.wrapper.GooglePayFlowCoordinator
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 
@@ -44,6 +45,7 @@ class CheckoutModule : Module() {
     private var paymentSessionID: String = ""
     private var paymentSessionToken: String = ""
     private var paymentSessionSecret: String = ""
+    private var customerEmail: String = ""
 
     private fun closeBottomSheet() {
         val dialog = bottomSheetDialog
@@ -90,6 +92,7 @@ class CheckoutModule : Module() {
             this@CheckoutModule.paymentSessionID = paymentSessionId
             this@CheckoutModule.paymentSessionToken = paymentSessionToken
             this@CheckoutModule.paymentSessionSecret = paymentSessionSecret
+            this@CheckoutModule.customerEmail = paymentSession["email"] as? String ?: ""
         }
 
         AsyncFunction("renderFlow") { params: Map<String, Any?> ->
@@ -143,6 +146,15 @@ class CheckoutModule : Module() {
                     emptyMap()
                 }
 
+                val rememberMeConfig = if (this@CheckoutModule.customerEmail.isNotEmpty()) {
+                    RememberMeConfiguration(
+                        data = RememberMeConfiguration.Data(
+                            email = this@CheckoutModule.customerEmail
+                        ),
+                        showPayButton = true
+                    )
+                } else null
+
                 val configuration = CheckoutComponentConfiguration(
                     context = context,
                     paymentSession = PaymentSessionResponse(
@@ -154,7 +166,7 @@ class CheckoutModule : Module() {
                     publicKey = this@CheckoutModule.publicKey,
                     environment = this@CheckoutModule.environment,
                     flowCoordinators = flowCoordinators,
-                    rememberMe = true,
+                    rememberMeConfiguration = rememberMeConfig,
                 )
 
                 CoroutineScope(Dispatchers.IO).launch {
