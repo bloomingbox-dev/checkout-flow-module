@@ -154,7 +154,7 @@ class CheckoutModule : Module() {
                     publicKey = this@CheckoutModule.publicKey,
                     environment = this@CheckoutModule.environment,
                     flowCoordinators = flowCoordinators,
-                    rememberMe = true,
+
                 )
 
                 CoroutineScope(Dispatchers.IO).launch {
