@@ -95,12 +95,7 @@ public class CheckoutModule: Module {
       throw NSError(domain: "NoRootView", code: 500, userInfo: nil)
     }
 
-    let rememberMeConfiguration: CheckoutComponents.RememberMeConfiguration? = customerEmail.isEmpty ? nil : {
-      let data = CheckoutComponents.RememberMeConfiguration.Data(email: customerEmail)
-      return CheckoutComponents.RememberMeConfiguration(data: data, showPayButton: true)
-    }()
-
-    let flowComponent = try checkoutComponents.create(.flow(rememberMeConfiguration: rememberMeConfiguration))
+    let flowComponent = try checkoutComponents.create(.flow())
     let flowView = flowComponent.render()
 
     let hostingController = UIHostingController(rootView: flowView)
