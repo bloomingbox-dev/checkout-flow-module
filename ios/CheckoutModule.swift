@@ -23,9 +23,9 @@ public class CheckoutModule: Module {
       try await self.initialize(paymentSession: paymentSession as NSDictionary)
     }
 
-    AsyncFunction("renderFlow") {
+    AsyncFunction("renderFlow") { (params: [String: Any]?) in
       try await MainActor.run {
-        try self.renderFlow()
+        try self.renderFlow(params: params)
       }
     }
   }
@@ -80,7 +80,7 @@ public class CheckoutModule: Module {
   }
 
   @MainActor
-  func renderFlow() throws {
+  func renderFlow(params: [String: Any]? = nil) throws {
     guard let checkoutComponents = checkoutComponents else {
       throw NSError(domain: "NotInitialized", code: 500, userInfo: nil)
     }

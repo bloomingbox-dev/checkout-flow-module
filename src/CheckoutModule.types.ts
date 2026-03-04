@@ -21,4 +21,7 @@ export type InitializeCheckoutPayload = {
 
 export type RenderFlowPayload = {
   enableGooglePay?: boolean;
+  email?: string;
+  phoneCountryCode?: string;
+  phoneNumber?: string;
 }

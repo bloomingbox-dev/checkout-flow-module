@@ -29,6 +29,9 @@ import com.checkout.components.interfaces.error.CheckoutError
 import com.checkout.components.interfaces.model.ComponentName
 import com.checkout.components.interfaces.model.PaymentMethodName
 import com.checkout.components.interfaces.model.PaymentSessionResponse
+import com.checkout.components.interfaces.component.ComponentOption
+import com.checkout.components.interfaces.model.RememberMeConfiguration
+import com.checkout.components.interfaces.model.Phone
 import com.checkout.components.wallet.wrapper.GooglePayFlowCoordinator
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 
@@ -99,6 +102,9 @@ class CheckoutModule : Module() {
             )
 
             val enableGooglePay = params["enableGooglePay"] as? Boolean ?: return@AsyncFunction null
+            val email = params["email"] as? String
+            val phoneCountryCode = params["phoneCountryCode"] as? String
+            val phoneNumber = params["phoneNumber"] as? String
 
             val activity = appContext.currentActivity
             if (activity == null) {
@@ -161,7 +167,24 @@ class CheckoutModule : Module() {
                         this@CheckoutModule.checkoutComponents =
                             CheckoutComponentsFactory(config = configuration).create()
 
-                        val flowComponent = checkoutComponents.create(ComponentName.Flow)
+                        val rememberMeConfig = if (email != null) {
+                            val phone = if (phoneCountryCode != null && phoneNumber != null) {
+                                Phone(countryCode = phoneCountryCode, number = phoneNumber)
+                            } else null
+
+                            RememberMeConfiguration(
+                                data = RememberMeConfiguration.Data(
+                                    email = email,
+                                    phone = phone
+                                )
+                            )
+                        } else null
+
+                        val componentOption = ComponentOption(
+                            rememberMeConfiguration = rememberMeConfig
+                        )
+
+                        val flowComponent = checkoutComponents.create(ComponentName.Flow, componentOption)
 
                         withContext(Dispatchers.Main) {
                             val dialog = BottomSheetDialog(context)
