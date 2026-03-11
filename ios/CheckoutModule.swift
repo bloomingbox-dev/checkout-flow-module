@@ -23,9 +23,9 @@ public class CheckoutModule: Module {
       try await self.initialize(paymentSession: paymentSession as NSDictionary)
     }
 
-    AsyncFunction("renderFlow") {
+    AsyncFunction("renderFlow") { (params: [String: Any]?) in
       try await MainActor.run {
-        try self.renderFlow()
+        try self.renderFlow(params: params ?? [:])
       }
     }
   }
@@ -64,14 +64,14 @@ public class CheckoutModule: Module {
       callbacks: CheckoutComponents.Callbacks(
         onSuccess: { paymentMethod, paymentID in
             print("Payment successful: \(paymentID)");
-            self.sendEvent("onSuccess", ["paymentID": paymentID]);
+            self.sendEvent("onSuccess", ["paymentId": paymentID]);
             Task { @MainActor in
                         self.closeFlowView()
                     }
         },
         onError: { error in
             print("Error: \(error)");
-            self.sendEvent("onFail", ["error": error]);
+            self.sendEvent("onFail", ["error": String(describing: error)]);
         }
       )
     )
@@ -80,7 +80,7 @@ public class CheckoutModule: Module {
   }
 
   @MainActor
-  func renderFlow() throws {
+  func renderFlow(params: [String: Any]) throws {
     guard let checkoutComponents = checkoutComponents else {
       throw NSError(domain: "NotInitialized", code: 500, userInfo: nil)
     }
@@ -92,7 +92,21 @@ public class CheckoutModule: Module {
       throw NSError(domain: "NoRootView", code: 500, userInfo: nil)
     }
 
-    let flowComponent = try checkoutComponents.create(.flow())
+    let rememberMeConfiguration = buildRememberMeConfiguration(from: params)
+    let showPayButton =
+      ((params["rememberMeConfiguration"] as? [String: Any])?["showPayButton"] as? Bool) ?? true
+
+    let flowComponent = try checkoutComponents.create(
+      .flow(options: [
+        .card(
+          showPayButton: showPayButton,
+          paymentButtonAction: .payment,
+          cardConfiguration: .init(displayCardHolderName: .top),
+          addressConfiguration: nil,
+          rememberMeConfiguration: rememberMeConfiguration
+        )
+      ])
+    )
     let flowView = flowComponent.render()
 
     let hostingController = UIHostingController(rootView: flowView)
@@ -125,4 +139,34 @@ public class CheckoutModule: Module {
         hostingController.removeFromParent()
         self.hostingController = nil
     }
+
+  private func buildRememberMeConfiguration(from params: [String: Any]) -> CheckoutComponents.RememberMeConfiguration? {
+      guard let rememberMeParams = params["rememberMeConfiguration"] as? [String: Any],
+            let email = rememberMeParams["email"] as? String,
+            !email.isEmpty else {
+          return nil
+      }
+
+      let phone: CheckoutComponents.Phone?
+      if let phoneParams = rememberMeParams["phone"] as? [String: Any],
+         let countryCode = phoneParams["countryCode"] as? String,
+         let number = phoneParams["number"] as? String,
+         !countryCode.isEmpty,
+         !number.isEmpty {
+          phone = CheckoutComponents.Phone(countryCode: countryCode, number: number)
+      } else {
+          phone = nil
+      }
+
+      let data = CheckoutComponents.RememberMeConfiguration.Data(
+        email: email,
+        phone: phone
+      )
+      let showPayButton = rememberMeParams["showPayButton"] as? Bool ?? true
+
+      return CheckoutComponents.RememberMeConfiguration(
+        data: data,
+        showPayButton: showPayButton
+      )
+  }
 }

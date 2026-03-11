@@ -19,6 +19,18 @@ export type InitializeCheckoutPayload = {
   };
 };
 
+export type RememberMePhone = {
+  countryCode: string;
+  number: string;
+};
+
+export type RememberMeConfiguration = {
+  email: string;
+  phone?: RememberMePhone;
+  showPayButton?: boolean;
+};
+
 export type RenderFlowPayload = {
   enableGooglePay?: boolean;
-}
+  rememberMeConfiguration?: RememberMeConfiguration;
+};

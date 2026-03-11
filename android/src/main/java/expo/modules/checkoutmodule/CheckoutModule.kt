@@ -24,11 +24,14 @@ import com.checkout.components.core.CheckoutComponentsFactory
 import com.checkout.components.interfaces.Environment
 import com.checkout.components.interfaces.api.CheckoutComponents
 import com.checkout.components.interfaces.component.CheckoutComponentConfiguration
+import com.checkout.components.interfaces.component.ComponentOption
 import com.checkout.components.interfaces.component.ComponentCallback
+import com.checkout.components.interfaces.component.RememberMeConfiguration
 import com.checkout.components.interfaces.error.CheckoutError
 import com.checkout.components.interfaces.model.ComponentName
 import com.checkout.components.interfaces.model.PaymentMethodName
 import com.checkout.components.interfaces.model.PaymentSessionResponse
+import com.checkout.components.interfaces.model.Phone
 import com.checkout.components.wallet.wrapper.GooglePayFlowCoordinator
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 
@@ -54,7 +57,41 @@ class CheckoutModule : Module() {
     lateinit private var checkoutComponents: CheckoutComponents
 
     private fun handleActivityResult(resultCode: Int, data: String) {
-        this.checkoutComponents?.handleActivityResult(resultCode, data)
+        if (this::checkoutComponents.isInitialized) {
+            this.checkoutComponents.handleActivityResult(resultCode, data)
+        }
+    }
+
+    private fun buildRememberMeConfiguration(params: Map<String, Any?>): RememberMeConfiguration? {
+        val rememberMeConfig = params["rememberMeConfiguration"] as? Map<*, *> ?: return null
+        val email = rememberMeConfig["email"] as? String ?: return null
+        if (email.isBlank()) {
+            return null
+        }
+
+        val phoneData = rememberMeConfig["phone"] as? Map<*, *>
+        val phone = if (phoneData != null) {
+            val countryCode = phoneData["countryCode"] as? String
+            val number = phoneData["number"] as? String
+
+            if (!countryCode.isNullOrBlank() && !number.isNullOrBlank()) {
+                Phone(countryCode = countryCode, number = number)
+            } else {
+                null
+            }
+        } else {
+            null
+        }
+
+        val data = RememberMeConfiguration.Data(
+            email = email,
+            phone = phone
+        )
+
+        return RememberMeConfiguration(
+            data = data,
+            showPayButton = rememberMeConfig["showPayButton"] as? Boolean ?: true
+        )
     }
 
 
@@ -92,13 +129,18 @@ class CheckoutModule : Module() {
             this@CheckoutModule.paymentSessionSecret = paymentSessionSecret
         }
 
-        AsyncFunction("renderFlow") { params: Map<String, Any?> ->
+        AsyncFunction("renderFlow") { params: Map<String, Any?>? ->
             Log.d(
                 "FlowModule",
                 "startPaymentSession invoked with ID: $this@CheckoutModule.paymentSessionID"
             )
 
-            val enableGooglePay = params["enableGooglePay"] as? Boolean ?: return@AsyncFunction null
+            val renderParams = params ?: emptyMap()
+            val enableGooglePay = renderParams["enableGooglePay"] as? Boolean ?: false
+            val rememberMeConfiguration = buildRememberMeConfiguration(renderParams)
+            val showPayButton =
+                ((renderParams["rememberMeConfiguration"] as? Map<*, *>)?.get("showPayButton") as? Boolean)
+                    ?: true
 
             val activity = appContext.currentActivity
             if (activity == null) {
@@ -116,14 +158,17 @@ class CheckoutModule : Module() {
                 },
                 onSuccess = { component, paymentID ->
                     Log.d("flow component", "payment success ${component.name}, ID: $paymentID")
-                    this@CheckoutModule.sendEvent("onSuccess");
+                    this@CheckoutModule.sendEvent("onSuccess", mapOf("paymentId" to paymentID))
                 },
                 onError = { component, checkoutError ->
                     Log.e(
                         "flow component",
                         "Error: ${checkoutError.message}, Code: ${checkoutError.code}"
                     )
-                    this@CheckoutModule.sendEvent("onFail");
+                    this@CheckoutModule.sendEvent(
+                        "onFail",
+                        mapOf("error" to (checkoutError.message ?: "Unknown error"))
+                    )
                 }
             )
 
@@ -143,6 +188,12 @@ class CheckoutModule : Module() {
                     emptyMap()
                 }
 
+                val componentOption = ComponentOption(
+                    showPayButton = showPayButton,
+                    callback = customComponentCallback,
+                    rememberMeConfiguration = rememberMeConfiguration
+                )
+
                 val configuration = CheckoutComponentConfiguration(
                     context = context,
                     paymentSession = PaymentSessionResponse(
@@ -161,7 +212,14 @@ class CheckoutModule : Module() {
                         this@CheckoutModule.checkoutComponents =
                             CheckoutComponentsFactory(config = configuration).create()
 
-                        val flowComponent = checkoutComponents.create(ComponentName.Flow)
+                        // Android Flow currently suppresses Remember Me in Checkout's SDK, so
+                        // render the standalone card component when Remember Me data is present.
+                        val paymentComponent =
+                            if (rememberMeConfiguration != null) {
+                                checkoutComponents.create(PaymentMethodName.Card, componentOption)
+                            } else {
+                                checkoutComponents.create(ComponentName.Flow, componentOption)
+                            }
 
                         withContext(Dispatchers.Main) {
                             val dialog = BottomSheetDialog(context)
@@ -198,7 +256,7 @@ class CheckoutModule : Module() {
                                 peekHeight = 0
                             }
 
-                            val view = flowComponent.provideView(containerView)
+                            val view = paymentComponent.provideView(containerView)
 
                             if (view is ComposeView) {
                                 val lifecycleOwner = activity as? LifecycleOwner
