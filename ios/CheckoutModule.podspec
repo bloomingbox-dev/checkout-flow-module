@@ -11,25 +11,18 @@ Pod::Spec.new do |s|
   }
   s.source         = { git: '' }
   s.static_framework = true
-  checkout_components_version = '1.6.0'
 
   s.dependency 'ExpoModulesCore'
-  s.prepare_command = <<-CMD
-    set -e
-    rm -rf vendor
-    mkdir -p vendor
-
-    curl -L --fail --retry 3 -o /tmp/CheckoutComponentsSDK.xcframework.zip "https://github.com/checkout/checkout-ios-components/releases/download/#{checkout_components_version}/CheckoutComponentsSDK.xcframework.zip"
-    unzip -o -q /tmp/CheckoutComponentsSDK.xcframework.zip -d vendor
-    rm -rf vendor/__MACOSX
-  CMD
-  s.preserve_paths = 'vendor/**/*'
-  s.vendored_frameworks = 'vendor/CheckoutComponentsSDK.xcframework'
+  spm_dependency(s,
+    url: 'https://github.com/checkout/checkout-ios-components',
+    requirement: {kind: 'exactVersion', version: '1.6.0'},
+    products: ['CheckoutComponents']
+  )
 
   # Swift/Objective-C compatibility
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
   }
 
-  s.source_files = "CheckoutModule.swift"
+  s.source_files = "**/*.{h,m,mm,swift,hpp,cpp}"
 end
